@@ -1,0 +1,107 @@
+{% extends "base1.html" %}
+
+{% block title %}Analysis Results{% endblock %}
+
+{% block body %}
+<div class="results-container">
+    <div class="results-header">
+        <h1><i class="fas fa-chart-pie"></i> Analysis Results</h1>
+        <p>Image analysis complete for: <strong>{{name}}</strong></p>
+    </div>
+    
+    <div class="results-grid">
+        <div class="original-image">
+            <h3>Uploaded Image</h3>
+            <div class="image-container">
+                <img src="/static/rimg.png" alt="uploaded image">
+            </div>
+        </div>
+        
+        <div class="prediction-results">
+            <h3>Classification Results</h3>
+            <div class="prediction-card">
+                <div class="prediction-item">
+                    <div class="prediction-label">Benign</div>
+                    <div class="prediction-bar">
+                        <div class="bar-fill benign" style="width: {{benign_value}}%"></div>
+                    </div>
+                    <div class="prediction-value">{{bencla}}</div>
+                </div>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">InSitu</div>
+                    <div class="prediction-bar">
+                        <div class="bar-fill insitu" style="width: {{insitu_value}}%"></div>
+                    </div>
+                    <div class="prediction-value">{{InSitu}}</div>
+                </div>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">Invasive</div>
+                    <div class="prediction-bar">
+                        <div class="bar-fill invasive" style="width: {{invasive_value}}%"></div>
+                    </div>
+                    <div class="prediction-value">{{inva}}</div>
+                </div>
+                
+                <div class="prediction-item">
+                    <div class="prediction-label">Lymphocytes</div>
+                    <div class="prediction-bar">
+                        <div class="bar-fill lymphocytes" style="width: {{lymphocytes_value}}%"></div>
+                    </div>
+                    <div class="prediction-value">{{norm}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="processing-section">
+        <h2>Image Processing Steps</h2>
+        <div class="processing-grid">
+            <div class="process-card">
+                <h4>Original Resized</h4>
+                <img src="/static/rimg.png" alt="Resized Image">
+            </div>
+            <div class="process-card">
+                <h4>Median Filter</h4>
+                <img src="/static/mimg.png" alt="Median Filter Image">
+            </div>
+            <div class="process-card">
+                <h4>Enhanced Image</h4>
+                <img src="/static/dimg.png" alt="Enhanced Image">
+            </div>
+            <div class="process-card">
+                <h4>Edge Detection</h4>
+                <img src="/static/eimg.png" alt="Edge Image">
+            </div>
+        </div>
+    </div>
+    
+    <div class="training-section">
+        <h2>Model Performance</h2>
+        <div class="training-grid">
+            <div class="training-card">
+                <h4>Accuracy</h4>
+                <img src="/static/acc.png" alt="Accuracy Graph">
+            </div>
+            <div class="training-card">
+                <h4>Loss</h4>
+                <img src="/static/loss.png" alt="Loss Graph">
+            </div>
+            <div class="training-card">
+                <h4>Confusion Matrix</h4>
+                <img src="/static/confusion.png" alt="Confusion Matrix">
+            </div>
+            <div class="training-card">
+                <h4>Scores</h4>
+                <img src="/static/scores.png" alt="Result Score">
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('home')}}" class="btn-primary"><i class="fas fa-home"></i> Back to Home</a>
+        <button class="btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print Results</button>
+    </div>
+</div>
+{% endblock %}

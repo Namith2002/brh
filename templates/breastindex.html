@@ -1,0 +1,42 @@
+{% extends "base1.html" %}
+
+{% block title %}Breast Cancer Detection{% endblock %}
+
+{% block body %}
+<div class="welcome-section">
+    <h1>Breast Cancer Image Analysis</h1>
+    <p>Upload a breast histopathology image for automated classification into Benign, InSitu, Invasive, or Lymphocytes categories.</p>
+</div>
+
+<div class="upload-container">
+    <div class="form-input">
+        <h2><i class="fas fa-upload"></i> Upload Image</h2>
+        <p>Select a high-quality histopathology image for analysis</p>
+        <form action="{{ url_for('upload_file1')}}" method="POST" enctype="multipart/form-data">
+            <input type="file" name="imageFile" id="imageFile" accept="image/*" required>
+            <label for="imageFile">Choose File</label>
+            <div id="file-name-display">No file selected</div>
+            <button type="submit" class="submit-btn">Analyze Image</button>
+        </form>
+    </div>
+    
+    <div class="info-card">
+        <h3><i class="fas fa-info-circle"></i> About This Tool</h3>
+        <p>This application uses a Convolutional Neural Network (CNN) to analyze breast histopathology images and classify them into four categories:</p>
+        <ul>
+            <li><strong>Benign:</strong> Non-cancerous abnormal cells</li>
+            <li><strong>InSitu:</strong> Early-stage cancer cells that haven't spread</li>
+            <li><strong>Invasive:</strong> Cancer cells that have spread beyond the original tissue</li>
+            <li><strong>Lymphocytes:</strong> Normal immune cells present in the tissue</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // Display selected filename
+    document.getElementById('imageFile').addEventListener('change', function() {
+        const fileName = this.files[0] ? this.files[0].name : 'No file selected';
+        document.getElementById('file-name-display').textContent = fileName;
+    });
+</script>
+{% endblock %}
