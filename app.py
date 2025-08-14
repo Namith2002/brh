@@ -5,22 +5,20 @@ import numpy as np
 import os
 import cv2
 import numpy as np
-from keras.layers import Input, Dense, Activation, ZeroPadding2D, Flatten, Conv2D
-from keras.layers import MaxPooling2D
-from keras.models import Model
-from keras_preprocessing import image
-from keras.models import load_model
-from keras import metrics
+from tensorflow.keras.layers import Input, Dense, Activation, ZeroPadding2D, Flatten, Conv2D
+from tensorflow.keras.layers import MaxPooling2D
+from tensorflow.keras.models import Model
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import load_model
+from tensorflow.keras import metrics
 
-from keras.applications.imagenet_utils import preprocess_input
+from tensorflow.keras.applications.imagenet_utils import preprocess_input
 from IPython.display import SVG
-from keras.utils.vis_utils import model_to_dot
-from keras.utils import plot_model
 from PIL import Image
-import keras.backend as K
+import tensorflow.keras.backend as K
 import tensorflow as tf
-import keras
-from keras.wrappers.scikit_learn import KerasClassifier
+import tensorflow.keras as keras
+from scikeras.wrappers import KerasClassifier
 from predictor import check
 
 K.set_image_data_format('channels_last')
@@ -43,19 +41,36 @@ def mean_pred(y_true, y_pred):
 
 # Crop and rotate image, return 12 images
 def getCropImgs(img, needRotations=False):
-    # img = img.convert('L')
+    # Resize the image to ensure it's large enough for cropping
+    img = img.resize((2048, 1536))
+    
+    # Convert to array and ensure it has 3 color channels (RGB)
     z = np.asarray(img, dtype=np.int8)
+    
+    # Check if image is grayscale and convert to RGB if needed
+    if len(z.shape) == 2:
+        # Convert grayscale to RGB by duplicating the single channel
+        z = np.stack((z,) * 3, axis=-1)
+    elif z.shape[2] == 4:
+        # If image has alpha channel (RGBA), remove it to get RGB
+        z = z[:, :, :3]
+    
     c = []
     for i in range(3):
         for j in range(4):
-            crop = z[512 * i:512 * (i + 1), 512 * j:512 * (j + 1), :]
-
-            c.append(crop)
-            if needRotations:
-                c.append(np.rot90(np.rot90(crop)))
-
-    # os.system('cls')
-    # print("Crop imgs", c[2].shape)
+            try:
+                crop = z[512 * i:512 * (i + 1), 512 * j:512 * (j + 1), :]
+                # Ensure each crop has the expected shape
+                if crop.shape[0] == 512 and crop.shape[1] == 512 and crop.shape[2] == 3:
+                    c.append(crop)
+                    if needRotations:
+                        c.append(np.rot90(np.rot90(crop)))
+            except IndexError:
+                # If cropping fails, create a blank image of the right size
+                blank_crop = np.zeros((512, 512, 3), dtype=np.int8)
+                c.append(blank_crop)
+                if needRotations:
+                    c.append(blank_crop)
 
     return c
 
@@ -246,8 +261,13 @@ def train(batch_size, epochs):
     return model
 
 
+@tf.function(reduce_retracing=True)
+def predict_once(model, x):
+    return model(x, training=False)
+
 def predict(img, savedModelPath, showImg=True):
-    model = load_model(savedModelPath)
+    # Load model without optimizer configuration
+    model = load_model(savedModelPath, compile=False)
     # if showImg:
     # Image.fromarray(np.array(img, np.float16), 'RGB').show()
 
@@ -256,7 +276,8 @@ def predict(img, savedModelPath, showImg=True):
         Image.fromarray(np.array(img, np.float16), 'RGB').show()
     x = np.expand_dims(x, axis=0)
 
-    softMaxPred = model.predict(x)
+    # Use the decorated function instead of direct predict call
+    softMaxPred = predict_once(model, x).numpy()
     print("prediction from CNN: " + str(softMaxPred) + "\n")
     probs = softmaxToProbs(softMaxPred)
 
@@ -275,7 +296,8 @@ def predict(img, savedModelPath, showImg=True):
 
 
 def softmaxToProbs(soft):
-    z_exp = [np.math.exp(i) for i in soft[0]]
+    import math
+    z_exp = [math.exp(i) for i in soft[0]]
     sum_z_exp = sum(z_exp)
     return [(i / sum_z_exp) * 100 for i in z_exp]
 
@@ -318,6 +340,7 @@ def model_pred(image):
 
     return (prediction)
 
+    
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -363,7 +386,7 @@ def upload_file1():
             classes.append("Benign")
             classes.append("InSitu")
             classes.append("Invasive")
-            classes.append("Normal")
+            classes.append("Lymphocytes")
 
             compProbs = []
             compProbs.append(0)
@@ -388,7 +411,39 @@ def upload_file1():
             for j in range(len(classes)):
                 if printData:
                     print(str(classes[j]) + " : " + str(round(compProbs[j] / 12, 4)) + "%")
-            return render_template('upload1.html', name=filename, bencla=str(classes[0])+" - "+str(round(compProbs[0] / 12, 4)) + "%",InSitu=str(classes[1])+" - "+str(round(compProbs[1] / 12, 4)) + "%",inva=str(classes[2])+" - "+str(round(compProbs[2] / 12, 4)) + "%",norm=str(classes[3])+" - "+str(round(compProbs[3] / 12, 4)) + "%" )
+            oimg=cv2.imread(img_path)
+            rimg=cv2.resize(oimg,[300, 300])
+            cv2.imwrite('./static/rimg.png',rimg)
+            rgbimg=cv2.cvtColor(rimg,cv2.COLOR_BGR2RGB)
+            gbimg=cv2.GaussianBlur(rgbimg, (7,7), 0)
+            mimg=cv2.medianBlur(rgbimg,5)
+            cv2.imwrite('./static/mimg.png',mimg)
+
+            dimg=cv2.fastNlMeansDenoisingColored(mimg,None,20,10,7,21)
+            cv2.imwrite('./static/dimg.png',dimg)
+            eimg=cv2.Canny(mimg,100,200)
+            cv2.imwrite('./static/eimg.png',eimg)
+            print(img_path)
+
+            # Calculate percentage values for the progress bars
+            benign_percent = round(compProbs[0] / 12, 4)
+            insitu_percent = round(compProbs[1] / 12, 4)
+            invasive_percent = round(compProbs[2] / 12, 4)
+            lymphocytes_percent = round(compProbs[3] / 12, 4)
+            
+            return render_template('upload1.html', 
+                name=filename,
+                upimage='/static/uploads/'+filename, 
+                bencla=str(classes[0])+" - "+str(benign_percent) + "%",
+                InSitu=str(classes[1])+" - "+str(insitu_percent) + "%",
+                inva=str(classes[2])+" - "+str(invasive_percent) + "%",
+                norm=str(classes[3])+" - "+str(lymphocytes_percent) + "%",
+                # Add these new variables for the progress bars - multiply by 100 for proper CSS percentages
+                benign_value=benign_percent * 100,
+                insitu_value=insitu_percent * 100,
+                invasive_value=invasive_percent * 100,
+                lymphocytes_value=lymphocytes_percent * 100
+            )
     return redirect(url_for('home'))
 
 
@@ -416,3 +471,7 @@ def model_predict(img_path, model):
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+from tensorflow.keras.utils import plot_model
+# If you need model_to_dot specifically, use:
+# from tensorflow.keras.utils import model_to_dot
+
